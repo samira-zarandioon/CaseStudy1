@@ -5,6 +5,11 @@ date: "March 13, 2017"
 output: html_document
 ---
 
+# Introduction
+
+In this report we analyze GDP ranking and distribution of **?** countries. Also, we study the relationship of GDP with income groups.
+ 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
