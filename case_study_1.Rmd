@@ -7,29 +7,147 @@ output: html_document
 
 # Introduction
 
-In this report we analyze GDP ranking and distribution of **?** countries. Also, we study the relationship of GDP with income groups.
+In this report we analyze GDP ranking and distribution of 180 countries. Also, we study the relationship of the GDP with income groups.
  
+To perform the analysis, using a make file, we first download the Gross Domestic product and the educationl data sets and after the clean up we analyze the tidy data. These steps and the analysis results are documented in following sections.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# Data Prepration 
+
+Below the steps for preparing the data are listed:
+
+1. Download the GDP data from [here](https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FGDP.csv).
+
+    ```{r, warning=FALSE}
+
+# Makefile.R
+    
+#install.packages("downloader")
+library(downloader)
+
+# downlaod the GDP data
+download("https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FGDP.csv", destfile="GDP.csv")
 ```
 
-## R Markdown
+2. The GDP data set contains 331 rows and 10 column. There are 127 rows with missing GDP value and 141 with missing Rank value. After cleaning the data, the tidy data set contains 190 rows and four columns. The following steps are used to clean the GDP data:
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+    * Drop the empty columns
+    * Give descriptive names to the remaining columns
+    * Convert the GDP and Rank columns to numeric type
+    * Drop the rows that their GDP or Rank is missing
+    
+    ```{r, warning=FALSE}
+    # (from) Makefile.R
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+    # read the GDP data file and skip the first 5 rows
+    GDP_dataframe <- read.csv("GDP.csv", stringsAsFactors=FALSE, header=FALSE)
+    
+cat("Rows in the initial GDP data set = ", nrow(GDP_dataframe), "\n")
+        
+# drop the empty columns
+GDP_dataframe <-GDP_dataframe[,c(1,2,4,5)]
 
-```{r cars}
-summary(cars)
+# give desciptive names to columns
+colnames(GDP_dataframe) = c("CountryCode","Rank","Country","GDP")
+
+# remove commos from GDP values and then convert them to numeric type
+GDP_dataframe$GDP <- as.numeric(gsub(",","",GDP_dataframe$GDP))
+
+# convert Rank to numeric type
+GDP_dataframe$Rank <- as.numeric(GDP_dataframe$Rank)
+
+# logic for handling missing value
+
+cat("\nRows with missing GDP value = ", nrow(GDP_dataframe[is.na(GDP_dataframe$GDP),]), "\n" )
+cat("Rows with missing Ranked value = ", nrow(GDP_dataframe[is.na(GDP_dataframe$Rank),]), "\n" )
+
+# remove rows with missing GDP or Rank values 
+GDP_dataframe <- GDP_dataframe[complete.cases(GDP_dataframe$GDP) & complete.cases(GDP_dataframe$Rank),]
+
+cat("Rows in the tidy GDP data set = ", nrow(GDP_dataframe), "\n")
+
 ```
 
-## Including Plots
+3. Download the educationl data set from [here](https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv) and clean the data by removing the 24 rows with missing income group and keeping only the relevat columns (i.e. CountryCode and Income.Group). The clean data set has 210 rows.
 
-You can also embed plots, for example:
+    ```{r, warning=FALSE}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+download("https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv", destfile="EDSTATS_Country.csv")
+
+ED_dataframe <-read.csv("EDSTATS_Country.csv", stringsAsFactors=FALSE, header=TRUE)
+
+cat("Rows in the initial ED data = ", nrow(ED_dataframe), "\n")
+cat("Rows with missing Income.Group = ", nrow(ED_dataframe[is.na(ED_dataframe$Income.Group) | ED_dataframe$Income.Group == "" ,]), "\n" )
+
+# remove rows with missing Income Group and keep only the relevant columns
+ED_dataframe <- ED_dataframe[ED_dataframe$Income.Group != "",c("CountryCode", "Income.Group")]
+cat("Rows in the tidy ED data = ", nrow(ED_dataframe), "\n")
+
+write.csv(ED_dataframe, file="ED_dataframe.csv")
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+4. Merge the data set containig GDP info with the data set containing info about income group by matching the country codes.
+
+    ```{r, warning=FALSE}
+GDP_IncomeGroup_dataframe <- merge(x=GDP_dataframe,y=ED_dataframe, by="CountryCode", incomparables = NA)
+```
+
+# Data Analysis
+
+We can use the tidy merged data set to collect the following information about distribution of GDPs and their relationship with income groups:
+
+1. Number of matched rows across GDP and Income Group data set is *189*.
+    ```{r}
+cat("Number of matched ids = ", nrow(GDP_IncomeGroup_dataframe), "\n")
+```
+
+2. The 13th country with lowest GDP is *St. Kitts and Nevis*.
+    ```{r, warning=FALSE}
+
+sorted_GDP_IncomeGroup_dataframe <- GDP_IncomeGroup_dataframe[with(GDP_IncomeGroup_dataframe,order(GDP, na.last = TRUE)),]
+
+cat("The 13th country with lowest GDP is", sorted_GDP_IncomeGroup_dataframe[13,]$Country, ".\n")
+```
+
+3. The average GDP rankings for the "High income: OECD" and "High income: nonOECD" groups are 1483917.13 and  104349.8 respectively.
+
+    ```{r}
+avg_GDP_per_group <- aggregate(list(avg_GDP=GDP_IncomeGroup_dataframe$GDP), by=list(Group=GDP_IncomeGroup_dataframe$Income.Group), FUN=mean)
+
+OECD_avg_GDP <- avg_GDP_per_group[avg_GDP_per_group$Group == "High income: OECD", c("avg_GDP")]
+nonOECD_avg_GDP <- avg_GDP_per_group[avg_GDP_per_group$Group == "High income: nonOECD", c("avg_GDP")]
+
+cat("Average GDP rankings for the High income: OECD = ",  OECD_avg_GDP, "\n")
+cat("Average GDP rankings for the High income: nonOECD = ", nonOECD_avg_GDP, "\n")
+
+```
+
+4. The following plot shows the distribution of GDP value for all the countries, color coded by income groups:
+
+    ```{r, warning=FALSE}
+#install.packages("ggplot2")
+library(ggplot2)
+ggplot(GDP_IncomeGroup_dataframe, aes(x=reorder(CountryCode, GDP), y=GDP/10^6)) +
+  geom_bar(aes(fill=Income.Group),   # fill depends on cond2
+           stat="identity",
+           colour="black",    # Black outline for all
+           position=position_dodge()) + # Put bars side-by-side instead of stacked
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 5)) +
+  labs(title = "GDP Distributions By Income Groups\n", x="Countries",y="GDP (million dollars)", colour = "Income Groups\n")
+```
+
+5. Summary statistics of GDP by income groups are as follows:
+
+    ```{r}
+summary_GDP_per_group <- aggregate(list(GDP=GDP_IncomeGroup_dataframe$GDP), by=list(Group=GDP_IncomeGroup_dataframe$Income.Group), FUN=function(x) c(Min=min(x), Mean=mean(x), Max=max(x), Sd=sd(x)))
+summary_GDP_per_group
+```
+6. Number of countries that are Lower middle income but among the 38 nations with highest GDP is 4.
+
+    ```{r, warning=FALSE}
+#install.packages("dplyr")
+library(dplyr)
+GDP_IncomeGroup_dataframe$quantile <- ntile(GDP_IncomeGroup_dataframe$GDP, 5) 
+middle_income_hieget_GDPs_df <- GDP_IncomeGroup_dataframe[GDP_IncomeGroup_dataframe$quantile==5 & GDP_IncomeGroup_dataframe$Income.Group=="Lower middle income",]
+cat("Number of countries that are Lower middle income but among the 38 nations with highest GDP (quantile 5): ", nrow(middle_income_hieget_GDPs_df))
+```
