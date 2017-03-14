@@ -126,8 +126,8 @@ $(document).ready(function () {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>In this report we analyze GDP ranking and distribution of 180 countries. Also, we study the relationship of the GDP with income groups.</p>
-<p>To perform the analysis, using a make file, we first download the Gross Domestic product and the educationl data sets and after the clean up we analyze the tidy data. These steps and the analysis results are documented in following sections.</p>
+<p>In this report we analyze GDP ranking and distribution of 190 countries. Also, we study the relationship of the GDP with income groups.</p>
+<p>To perform the analysis, using a make file, we first download the Gross Domestic product and the educational data sets and after the clean up we analyze the tidy data. These steps and the analysis results are documented in following sections.</p>
 </div>
 <div id="data-prepration" class="section level1">
 <h1>Data Prepration</h1>
@@ -169,31 +169,29 @@ GDP_dataframe$Rank &lt;- as.numeric(GDP_dataframe$Rank)
 
 # logic for handling missing value
 
-cat(&quot;\nRows with missing GDP value = &quot;, nrow(GDP_dataframe[is.na(GDP_dataframe$GDP),]), &quot;\n&quot; )</code></pre>
-<pre><code>## 
-## Rows with missing GDP value =  127</code></pre>
-<pre class="r"><code>cat(&quot;Rows with missing Ranked value = &quot;, nrow(GDP_dataframe[is.na(GDP_dataframe$Rank),]), &quot;\n&quot; )</code></pre>
-<pre><code>## Rows with missing Ranked value =  141</code></pre>
+cat(&quot;Rows with missing GDP value = &quot;, nrow(GDP_dataframe[is.na(GDP_dataframe$GDP),]), &quot;\n&quot; )</code></pre>
+<pre><code>## Rows with missing GDP value =  127</code></pre>
+<pre class="r"><code>cat(&quot;Rows with missing Rank value = &quot;, nrow(GDP_dataframe[is.na(GDP_dataframe$Rank),]), &quot;\n&quot; )</code></pre>
+<pre><code>## Rows with missing Rank value =  141</code></pre>
 <pre class="r"><code># remove rows with missing GDP or Rank values 
 GDP_dataframe &lt;- GDP_dataframe[complete.cases(GDP_dataframe$GDP) &amp; complete.cases(GDP_dataframe$Rank),]
 
 cat(&quot;Rows in the tidy GDP data set = &quot;, nrow(GDP_dataframe), &quot;\n&quot;)</code></pre>
 <pre><code>## Rows in the tidy GDP data set =  190</code></pre></li>
-<li><p>Download the educationl data set from <a href="https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv">here</a> and clean the data by removing the 24 rows with missing income group and keeping only the relevat columns (i.e. CountryCode and Income.Group). The clean data set has 210 rows.</p>
+<li><p>Download the educational data set from <a href="https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv">here</a> and clean the data by removing the 24 rows with missing income group and keeping only the relevant columns (i.e. CountryCode and Income.Group). The clean data set has 210 rows.</p>
 <pre class="r"><code>download(&quot;https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv&quot;, destfile=&quot;EDSTATS_Country.csv&quot;)
 
 ED_dataframe &lt;-read.csv(&quot;EDSTATS_Country.csv&quot;, stringsAsFactors=FALSE, header=TRUE)
 
-cat(&quot;Rows in the initial ED data = &quot;, nrow(ED_dataframe), &quot;\n&quot;)</code></pre>
-<pre><code>## Rows in the initial ED data =  234</code></pre>
+cat(&quot;Rows in the initial ED data set = &quot;, nrow(ED_dataframe), &quot;\n&quot;)</code></pre>
+<pre><code>## Rows in the initial ED data set =  234</code></pre>
 <pre class="r"><code>cat(&quot;Rows with missing Income.Group = &quot;, nrow(ED_dataframe[is.na(ED_dataframe$Income.Group) | ED_dataframe$Income.Group == &quot;&quot; ,]), &quot;\n&quot; )</code></pre>
 <pre><code>## Rows with missing Income.Group =  24</code></pre>
 <pre class="r"><code># remove rows with missing Income Group and keep only the relevant columns
 ED_dataframe &lt;- ED_dataframe[ED_dataframe$Income.Group != &quot;&quot;,c(&quot;CountryCode&quot;, &quot;Income.Group&quot;)]
 cat(&quot;Rows in the tidy ED data = &quot;, nrow(ED_dataframe), &quot;\n&quot;)</code></pre>
-<pre><code>## Rows in the tidy ED data =  210</code></pre>
-<pre class="r"><code>write.csv(ED_dataframe, file=&quot;ED_dataframe.csv&quot;)</code></pre></li>
-<li><p>Merge the data set containig GDP info with the data set containing info about income group by matching the country codes.</p>
+<pre><code>## Rows in the tidy ED data =  210</code></pre></li>
+<li><p>Merge the data set containing GDP info with the data set containing info about income group by matching the country codes.</p>
 <pre class="r"><code>GDP_IncomeGroup_dataframe &lt;- merge(x=GDP_dataframe,y=ED_dataframe, by=&quot;CountryCode&quot;, incomparables = NA)</code></pre></li>
 </ol>
 </div>
@@ -205,7 +203,8 @@ cat(&quot;Rows in the tidy ED data = &quot;, nrow(ED_dataframe), &quot;\n&quot;)
 <pre class="r"><code>cat(&quot;Number of matched ids = &quot;, nrow(GDP_IncomeGroup_dataframe), &quot;\n&quot;)</code></pre>
 <pre><code>## Number of matched ids =  189</code></pre></li>
 <li><p>The 13th country with lowest GDP is <em>St. Kitts and Nevis</em>.</p>
-<pre class="r"><code>sorted_GDP_IncomeGroup_dataframe &lt;- GDP_IncomeGroup_dataframe[with(GDP_IncomeGroup_dataframe,order(GDP, na.last = TRUE)),]
+<pre class="r"><code># sort the rows in the data frame based on the GDP in ascending order.
+sorted_GDP_IncomeGroup_dataframe &lt;- GDP_IncomeGroup_dataframe[order(GDP_IncomeGroup_dataframe$GDP, na.last = TRUE),]
 
 cat(&quot;The 13th country with lowest GDP is&quot;, sorted_GDP_IncomeGroup_dataframe[13,]$Country, &quot;.\n&quot;)</code></pre>
 <pre><code>## The 13th country with lowest GDP is St. Kitts and Nevis .</code></pre></li>
@@ -223,7 +222,7 @@ cat(&quot;Average GDP rankings for the High income: OECD = &quot;,  OECD_avg_GDP
 <pre class="r"><code>#install.packages(&quot;ggplot2&quot;)
 library(ggplot2)
 ggplot(GDP_IncomeGroup_dataframe, aes(x=reorder(CountryCode, GDP), y=GDP/10^6)) +
-  geom_bar(aes(fill=Income.Group),   # fill depends on cond2
+  geom_bar(aes(fill=Income.Group),   # fill depends on income group
        stat=&quot;identity&quot;,
        colour=&quot;black&quot;,    # Black outline for all
        position=position_dodge()) + # Put bars side-by-side instead of stacked
@@ -250,11 +249,19 @@ library(dplyr)</code></pre>
 <pre><code>## The following objects are masked from 'package:base':
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>GDP_IncomeGroup_dataframe$quantile &lt;- ntile(GDP_IncomeGroup_dataframe$GDP, 5) 
+<pre class="r"><code># add a new variable that indicates the quantile of each row
+GDP_IncomeGroup_dataframe$quantile &lt;- ntile(GDP_IncomeGroup_dataframe$GDP, 5) 
+
+# select the rows that are in the fifth quantile and also are Lower middle income
 middle_income_hieget_GDPs_df &lt;- GDP_IncomeGroup_dataframe[GDP_IncomeGroup_dataframe$quantile==5 &amp; GDP_IncomeGroup_dataframe$Income.Group==&quot;Lower middle income&quot;,]
+
 cat(&quot;Number of countries that are Lower middle income but among the 38 nations with highest GDP (quantile 5): &quot;, nrow(middle_income_hieget_GDPs_df))</code></pre>
 <pre><code>## Number of countries that are Lower middle income but among the 38 nations with highest GDP (quantile 5):  4</code></pre></li>
 </ol>
+</div>
+<div id="summary" class="section level1">
+<h1>Summary</h1>
+<p>In this report we analyzed the distribution of GDP of 190 countries and studied their relationship with income group. Moreover, we provided the steps for reproducing the results including the steps for collection and cleaning the raw data.</p>
 </div>
 
 
